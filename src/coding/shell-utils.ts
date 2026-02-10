@@ -1,8 +1,6 @@
 import { existsSync } from "node:fs";
 import { delimiter } from "node:path";
 import { spawn, spawnSync } from "child_process";
-import { getBinDir, getSettingsPath } from "../config.js";
-import { SettingsManager } from "../core/settings-manager.js";
 
 let cachedShellConfig: { shell: string; args: string[] } | null = null;
 
@@ -53,20 +51,6 @@ export function getShellConfig(): { shell: string; args: string[] } {
 		return cachedShellConfig;
 	}
 
-	const settings = SettingsManager.create();
-	const customShellPath = settings.getShellPath();
-
-	// 1. Check user-specified shell path
-	if (customShellPath) {
-		if (existsSync(customShellPath)) {
-			cachedShellConfig = { shell: customShellPath, args: ["-c"] };
-			return cachedShellConfig;
-		}
-		throw new Error(
-			`Custom shell path not found: ${customShellPath}\nPlease update shellPath in ${getSettingsPath()}`,
-		);
-	}
-
 	if (process.platform === "win32") {
 		// 2. Try Git Bash in known locations
 		const paths: string[] = [];
@@ -97,7 +81,6 @@ export function getShellConfig(): { shell: string; args: string[] } {
 			`No bash shell found. Options:\n` +
 				`  1. Install Git for Windows: https://git-scm.com/download/win\n` +
 				`  2. Add your bash to PATH (Cygwin, MSYS2, etc.)\n` +
-				`  3. Set shellPath in ${getSettingsPath()}\n\n` +
 				`Searched Git Bash in:\n${paths.map((p) => `  ${p}`).join("\n")}`,
 		);
 	}
@@ -119,16 +102,12 @@ export function getShellConfig(): { shell: string; args: string[] } {
 }
 
 export function getShellEnv(): NodeJS.ProcessEnv {
-	const binDir = getBinDir();
 	const pathKey = Object.keys(process.env).find((key) => key.toLowerCase() === "path") ?? "PATH";
 	const currentPath = process.env[pathKey] ?? "";
-	const pathEntries = currentPath.split(delimiter).filter(Boolean);
-	const hasBinDir = pathEntries.includes(binDir);
-	const updatedPath = hasBinDir ? currentPath : [binDir, currentPath].filter(Boolean).join(delimiter);
 
 	return {
 		...process.env,
-		[pathKey]: updatedPath,
+		[pathKey]: currentPath,
 	};
 }
 

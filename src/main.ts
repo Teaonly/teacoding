@@ -2,10 +2,11 @@
 
 import dotenv from 'dotenv';
 import { defaultModel } from './providers';
-import { defaultConfig } from './coding-agent';
+import { defaultConfig, buildAgent} from './coding-agent';
+
 async function main() {
-    console.log( defaultConfig );
-    console.log("Hello world")
+    let agent = buildAgent(defaultConfig, defaultModel);
+    console.log(agent);
 }
 
 // Load environment variables from .env file
