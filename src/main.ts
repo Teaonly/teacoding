@@ -6,7 +6,8 @@ import { defaultConfig, buildAgent} from './coding-agent';
 
 async function main() {
     let agent = buildAgent(defaultConfig, defaultModel);
-    console.log(agent);
+    agent.setThinkingLevel("medium");
+    await agent.prompt("Hello");
 }
 
 // Load environment variables from .env file

@@ -8,7 +8,7 @@ const glmModel: Model<'openai-completions'> = {
   baseUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
   reasoning: true,
   input: ['text'],
-  cost: { input: 2.5, output: 10, cacheRead: 0, cacheWrite: 0 },
+  cost: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 },
   contextWindow: 128000,
   maxTokens: 16384,
   compat: {

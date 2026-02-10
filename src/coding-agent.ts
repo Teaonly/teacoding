@@ -3,7 +3,6 @@ import  {Agent, AgentTool} from "./agent/index";
 import {type Skill, loadSkills, formatSkillsForPrompt, 
         readTool, bashTool, writeTool, editTool} from "./coding/index";
 
-
 // 内置工具集
 export enum BuiltinTool {
     Read =  "- read: Read file contents",
@@ -98,9 +97,7 @@ function fullSystemPrompt(config: CodingAgentConfig): string {
 function listAgentTools(config: CodingAgentConfig) : AgentTool[] {
     let tools: AgentTool[] = [];
     for (const t of config.selectedTools) {
-        if (t == BuiltinTool.Read) {
-            tools.push( readTool );
-        }
+        tools.push(t);
     }
 
     return tools;
@@ -119,6 +116,15 @@ export function buildAgent( config: CodingAgentConfig, model: Model<Api>): Agent
             model: model,
             tools: tools
         },
+        // API_KEY
+        getApiKey: async (provider:string) => {
+            if ( process.env.BIGMODEL_API_KEY ) {
+                return process.env.BIGMODEL_API_KEY as string;
+            }
+            throw new Error(`无法获得 BIGMODEL_API_KEY for ${provider}`);
+        }
     });
     return agent;
 }
+
+
