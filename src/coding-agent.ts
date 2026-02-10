@@ -6,6 +6,7 @@ import type {
     AgentTool,
     ThinkingLevel,
 } from "./agent/index";
+import {type Skill, loadSkills} from "./coding/skills";
 
 
 // 内置工具集
@@ -31,7 +32,7 @@ export interface CodingAgentConfig {
 }
 
 // 构造默认配置
-export const defaultConfig: CondingAgentConfig = (()=>{
+export const defaultConfig: CodingAgentConfig = (()=>{
     const defaultTools: BuiltinTool[] = [BuiltinTool.Read, BuiltinTool.Bash, BuiltinTool.Edit, BuiltinTool.Write];
     const toolsString = defaultTools.join("\n");
     let prompt = `You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, execut
@@ -46,18 +47,18 @@ Guidelines:
 - Use write only for new files or complete rewrites.
 - When summarizing your actions, output plain text directly - do NOT use cat or bash to display what you did.`;
     
+    // 默认加载当前执行目录下的 SKILLS 
+    const skills = loadSkills(["./"]);
+
     const config : CodingAgentConfig = {
-        selectedTools: defaultTools;
-        systemPrompt: prompt;
-        skills: [];
-        cwd: process.cwd();
+        selectedTools: defaultTools,
+        systemPrompt: prompt,
+        skills: skills,
+        cwd: process.cwd(),
     };
     return config;
 })();
 
 // 编码智能体实现，配置三件套: 工具+提示词+SKILLS，运行AgentLoop，返回结果。
 // 内置：状态可观察可控制（中断、修改等），错误重试，最终答案整理
-export function createCodingAgent(config: CondingAgentConfig) : Agent {
-    
-}
 

@@ -2,8 +2,9 @@
 
 import dotenv from 'dotenv';
 import { defaultModel } from './providers';
-import { CodingAgent } from './coding';
+import { defaultConfig } from './coding-agent';
 async function main() {
+    console.log( defaultConfig );
     console.log("Hello world")
 }
 
