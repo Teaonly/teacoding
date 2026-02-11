@@ -25,7 +25,7 @@ async function main(userTask: string, cwd?: string, skillPaths?: string[]) {
             case "turn_start":
                 console.log();
                 console.log(`\x1b[34m\x1b[1m回合 ${turn} 开始\x1b[0m`);
-                console.log(`\x1b[90m${'─'.repeat(42)}\x1b[0m`);
+                console.log(`\x1b[97m${'─'.repeat(42)}\x1b[0m`);
                 break;
 
             case "turn_end":
@@ -51,12 +51,12 @@ async function main(userTask: string, cwd?: string, skillPaths?: string[]) {
 
             case "tool_execution_start":
                 console.log(`\x1b[35m🔧 执行工具: \x1b[1m${evt.toolName}\x1b[0m`);
-                console.log(`\x1b[90m   参数: ${JSON.stringify(evt.args, null, 2)}\x1b[0m`);
+                console.log(`\x1b[97m 参数: ${JSON.stringify(evt.args, null, 2)}\x1b[0m`);
                 break;
 
             case "tool_execution_update":
                 // 显示工具执行的中间结果
-                console.log(`\x1b[90m   ${evt.partialResult}\x1b[0m`);
+                console.log(`\x1b[97m   ${evt.partialResult}\x1b[0m`);
                 break;
 
             case "tool_execution_end":
@@ -87,7 +87,7 @@ async function main(userTask: string, cwd?: string, skillPaths?: string[]) {
             }
         }
         console.log();
-        console.log(`\x1b[90m${'─'.repeat(42)}\x1b[0m`);
+        console.log(`\x1b[97m${'─'.repeat(42)}\x1b[0m`);
     }
 }
 
@@ -128,7 +128,7 @@ function showHelp() {
     const { name, version, description, options } = CLI_CONFIG;
 
     console.log(`\n\x1b[1m\x1b[36m${name}\x1b[0m v${version}`);
-    console.log(`\x1b[90m${description}\x1b[0m\n`);
+    console.log(`\x1b[97m${description}\x1b[0m\n`);
     console.log(`\x1b[1m用法:\x1b[0m`);
     console.log(`  ${name} [选项] <任务>\n`);
     console.log(`\x1b[1m选项:\x1b[0m`);
@@ -146,9 +146,9 @@ function showHelp() {
 
     console.log(`\n\x1b[1m示例:\x1b[0m`);
     console.log(`  ${name} "帮我重构这个文件"`);
-    console.log(`  ${name} -c /path/to/project "添加单元测试"`);
-    console.log(`  ${name} -s skills/custom.ts "使用自定义技能"`);
-    console.log(`  ${name} -s skill1.ts -s skill2.ts "使用多个技能"\n`);
+    console.log(`  ${name} -c /path/to/project "指定工作目录"`);
+    console.log(`  ${name} -s skilldir "加载单一目录下的SKILLS"`);
+    console.log(`  ${name} -s skilldir1 -s skilldir2 "加载多个目录下的SKILLS"\n`);
 }
 
 /**
