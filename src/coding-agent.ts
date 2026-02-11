@@ -1,7 +1,8 @@
-import { Model, Api} from '@mariozechner/pi-ai';
+import { Model } from '@mariozechner/pi-ai';
 import  {Agent, AgentTool} from "./agent/index";
 import {type Skill, loadSkills, formatSkillsForPrompt, 
-        readTool, bashTool, writeTool, editTool} from "./coding/index";
+        readTool, bashTool, writeTool, editTool, 
+        findTool, grepTool, lsTool} from "./coding/index";
 
 // 内置工具集
 export enum BuiltinTool {
@@ -95,17 +96,31 @@ function fullSystemPrompt(config: CodingAgentConfig): string {
 }
 
 function listAgentTools(config: CodingAgentConfig) : AgentTool[] {
-    let tools: AgentTool[] = [];
+    let tools: AgentTool<any>[] = [];
     for (const t of config.selectedTools) {
-        tools.push(t);
+        if (t === BuiltinTool.Read) {
+            tools.push(readTool);
+        } else if ( t == BuiltinTool.Bash) {
+            tools.push(bashTool);
+        } else if ( t == BuiltinTool.Write) {
+            tools.push(writeTool);
+        } else if ( t == BuiltinTool.Edit) {
+            tools.push(editTool);
+        } else if ( t == BuiltinTool.Find) {
+            tools.push(findTool);
+        } else if ( t == BuiltinTool.Grep) {
+            tools.push(grepTool);
+        } else if ( t == BuiltinTool.Ls) {
+            tools.push(lsTool);
+        }
     }
-
+    
     return tools;
 }
 
 // 编码智能体实现，配置三件套: 工具+提示词+SKILLS，运行AgentLoop，返回结果。
 // 内置：状态可观察可控制（中断、修改等），错误重试，最终答案整理
-export function buildAgent( config: CodingAgentConfig, model: Model<Api>): Agent {
+export function buildAgent( config: CodingAgentConfig, model: Model<any>): Agent {
     const tools = listAgentTools(config);
     const fullPrompt = fullSystemPrompt(config);
     
@@ -126,5 +141,4 @@ export function buildAgent( config: CodingAgentConfig, model: Model<Api>): Agent
     });
     return agent;
 }
-
 
