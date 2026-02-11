@@ -18,4 +18,5 @@ const glmModel: Model<'openai-completions'> = {
 };
 
 export const defaultModel = glmModel;
+export const defaultKey = "BIGMODEL_API_KEY";
 export { glmModel };

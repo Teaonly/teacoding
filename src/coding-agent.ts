@@ -1,37 +1,43 @@
+
 import { Model } from '@mariozechner/pi-ai';
-import  {Agent, AgentTool} from "./agent/index";
-import {type Skill, loadSkills, formatSkillsForPrompt, 
-        readTool, bashTool, writeTool, editTool, 
-        findTool, grepTool, lsTool} from "./coding/index";
+import { Agent, AgentTool } from './agent';
+import {type Skill, loadSkills, formatSkillsForPrompt, BuiltinTool,
+        readTool, bashTool, writeTool, editTool,
+        findTool, grepTool, lsTool} from "./coding";
 
-// 内置工具集
-export enum BuiltinTool {
-    Read =  "- read: Read file contents",
-    Bash =  "- bash: Execute bash commands (ls, grep, find, etc.)",
-    Edit =  "- edit: Make surgical edits to files (find exact text and replace)",
-    Write = "- write: Create or overwrite files",
-    Grep =  "- grep: Search file contents for patterns (respects .gitignore)",
-    Find =  "- find: Find files by glob pattern (respects .gitignore)",
-    Ls =    "- list: List directory contents",
-};
-
-// 配置三件套: 提示词+工具+SKILLS，
-export interface CodingAgentConfig {
-    selectedTools: Set<BuiltinTool> ;
-    systemPrompt: string;
-    skills: Skill[];
+// 通过构造：提示词+工具+SKILLS 三件套，孙行者版本，标准4个工具，加载SKILLS
+export function buildAgent(model: Model<any>, apikey: string, selectedTools: BuiltinTool[], cwd: string | undefined = undefined, skillPaths: string[] = [] ) : Agent {
+    // 检查是否有重复工具设置
+    const _selectedTools = new Set(selectedTools);
+    if (_selectedTools.size != selectedTools.length) {
+        throw Error("工具集不能重复！");
+    }
+    const toolsString = selectedTools.join("\n");
+    // 构建工具集
+    const tools: AgentTool<any>[] = [];
+    for (const t of selectedTools) {
+        if (t === BuiltinTool.Read ) {
+            tools.push( readTool );
+        } else if (t == BuiltinTool.Bash) {
+            tools.push( bashTool );
+        } else if (t == BuiltinTool.Write) {
+            tools.push( writeTool );
+        } else if (t == BuiltinTool.Edit) {
+            tools.push( editTool );
+        } else if (t == BuiltinTool.Find) {
+            tools.push( findTool );
+        } else if (t == BuiltinTool.Grep) {
+            tools.push( grepTool );
+        } else if (t == BuiltinTool.Ls ) {
+            tools.push( lsTool );
+        } else {
+            throw Error(`错误的工具:${t}`);
+        }
+    }
     
-    cwd?: string;
-    appendSystemPrompt?: string;
-    contextFiles?: Array<{ path: string; content: string }>;
-}
-
-// 构造默认配置
-export const defaultConfig: CodingAgentConfig = (()=>{
-    const defaultTools: Set<BuiltinTool> = new Set([BuiltinTool.Read, BuiltinTool.Bash, BuiltinTool.Edit, BuiltinTool.Write]);
-    const toolsString = Array.from(defaultTools).join("\n");
-    let prompt = `You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
-
+    // 最简系统提示词，简单说明一下工具使用
+    let prompt = `You are an expert coding assistant operating inside a general agent harness. You help users by reading files, executing commands, editing code, and writing new files.
+    
 Available tools:
 ${toolsString}
 
@@ -41,38 +47,11 @@ Guidelines:
 - Use edit for precise changes (old text must match exactly).
 - Use write only for new files or complete rewrites.
 - When summarizing your actions, output plain text directly - do NOT use cat or bash to display what you did.`;
-    
-    // 默认加载当前执行目录下的 SKILLS 
-    const skills = loadSkills(["./"]);
-    const config : CodingAgentConfig = {
-        selectedTools: defaultTools,
-        systemPrompt: prompt,
-        skills: skills,
-        cwd: process.cwd(),
-    };
-    return config;
-})();
 
-function fullSystemPrompt(config: CodingAgentConfig): string {
-    let prompt = config.systemPrompt;
-    if (config.appendSystemPrompt) {
-		prompt += `\n\n${config.appendSystemPrompt}`;
-	}
-
-    // 基于文件的上下文，直接加载内容
-    if (config.contextFiles && config.contextFiles.length > 0) {
-		prompt += "\n\n# Project Context\n\n";
-		prompt += "Project-specific instructions and guidelines:\n\n";
-
-        let contextFiles = config.contextFiles;
-		for (const { path: filePath, content } of contextFiles) {
-			prompt += `## ${filePath}\n\n${content}\n\n`;
-		}
-	}
-
-    // SKILLS 加载
-    if ( config.selectedTools.has( BuiltinTool.Read ) && config.skills.length > 0 ) {
-        prompt += formatSkillsForPrompt(config.skills);
+    // 技能相关提示词部分
+    const skills : Skill[] = loadSkills(skillPaths);
+    if (skills.length > 0) {
+        prompt += formatSkillsForPrompt(skills);
     }
 
     // Add date/time and working directory last
@@ -87,58 +66,27 @@ function fullSystemPrompt(config: CodingAgentConfig): string {
 		second: "2-digit",
 		timeZoneName: "short",
 	});
-    const resolvedCwd = config.cwd ?? process.cwd();
+    const resolvedCwd = cwd ?? process.cwd();
 
 	prompt += `\n\nCurrent date and time: ${dateTime}`;
-	prompt += `\nCurrent working directory: ${resolvedCwd}`;
+    prompt += `\nCurrent working directory: ${resolvedCwd}`;
 
-    return prompt;
-}
-
-function listAgentTools(config: CodingAgentConfig) : AgentTool[] {
-    let tools: AgentTool<any>[] = [];
-    for (const t of config.selectedTools) {
-        if (t === BuiltinTool.Read) {
-            tools.push(readTool);
-        } else if ( t == BuiltinTool.Bash) {
-            tools.push(bashTool);
-        } else if ( t == BuiltinTool.Write) {
-            tools.push(writeTool);
-        } else if ( t == BuiltinTool.Edit) {
-            tools.push(editTool);
-        } else if ( t == BuiltinTool.Find) {
-            tools.push(findTool);
-        } else if ( t == BuiltinTool.Grep) {
-            tools.push(grepTool);
-        } else if ( t == BuiltinTool.Ls) {
-            tools.push(lsTool);
-        }
-    }
-    
-    return tools;
-}
-
-// 编码智能体实现，配置三件套: 工具+提示词+SKILLS，运行AgentLoop，返回结果。
-// 内置：状态可观察可控制（中断、修改等），错误重试，最终答案整理
-export function buildAgent( config: CodingAgentConfig, model: Model<any>): Agent {
-    const tools = listAgentTools(config);
-    const fullPrompt = fullSystemPrompt(config);
-    
+    // 构建 Agent 主体
     const agent = new Agent({
         // Initial state
         initialState: {
-            systemPrompt: fullPrompt,
+            systemPrompt: prompt,
             model: model,
             tools: tools
         },
+        
         // API_KEY
         getApiKey: async (provider:string) => {
-            if ( process.env.BIGMODEL_API_KEY ) {
-                return process.env.BIGMODEL_API_KEY as string;
+            if ( process.env[apikey] ) {
+                return process.env[apikey] as string;
             }
-            throw new Error(`无法获得 BIGMODEL_API_KEY for ${provider}`);
+            throw new Error(`无法从环境变量中获得 API_KEY for ${provider}`);
         }
     });
     return agent;
 }
-

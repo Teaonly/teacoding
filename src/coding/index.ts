@@ -142,3 +142,16 @@ export function createAllTools(cwd: string, options?: ToolsOptions): Record<Tool
 		ls: createLsTool(cwd),
 	};
 }
+
+/**
+ * Given short docuent to all tools.
+ */
+export enum BuiltinTool {
+	Read =  "- read: Read file contents",
+	Bash =  "- bash: Execute bash commands (ls, grep, find, etc.)",
+	Edit =  "- edit: Make surgical edits to files (find exact text and replace)",
+	Write = "- write: Create or overwrite files",
+	Grep =  "- grep: Search file contents for patterns (respects .gitignore)",
+	Find =  "- find: Find files by glob pattern (respects .gitignore)",
+	Ls =    "- list: List directory contents",
+};
