@@ -7,10 +7,11 @@ import { BuiltinTool } from "./coding";
 import { defaultModel , defaultKey} from './providers';
 import { buildAgent } from './coding-agent';
 
-async function main(userTask: string, cwd?: string, skillPaths?: string[]) {
+async function main(userTask: string, cwd?: string, skillPaths?: string[], maxTurns: number = 50) {
     const tools = [BuiltinTool.Read, BuiltinTool.Write, BuiltinTool.Edit, BuiltinTool.Bash];
     let agent: Agent = buildAgent(defaultModel, defaultKey, tools, cwd, skillPaths);
 
+    const MAX_TURNS = maxTurns;
     let turn:number = 1;
     agent.subscribe((evt: AgentEvent) => {
         switch (evt.type) {
@@ -31,6 +32,10 @@ async function main(userTask: string, cwd?: string, skillPaths?: string[]) {
             case "turn_end":
                 console.log(`\x1b[34m\x1b[1m回合 ${turn} 完成\x1b[0m`);
                 turn++;
+                if (turn > MAX_TURNS) {
+                    console.log(`\x1b[33m\x1b[1m⚠ 已达到最大轮次限制 (${MAX_TURNS})，正在中止...\x1b[0m`);
+                    agent.abort();
+                }
                 break;
 
             case "message_start":
@@ -117,6 +122,12 @@ const CLI_CONFIG = {
             long: 'skills',
             description: '指定技能文件路径（支持逗号分隔或多次使用）',
             type: 'array'
+        },
+        {
+            short: 'm',
+            long: 'max-turns',
+            description: '设置最大轮次数（默认：50）',
+            type: 'number'
         }
     ]
 } as const;
@@ -148,7 +159,8 @@ function showHelp() {
     console.log(`  ${name} "帮我重构这个文件"`);
     console.log(`  ${name} -c /path/to/project "指定工作目录"`);
     console.log(`  ${name} -s skilldir "加载单一目录下的SKILLS"`);
-    console.log(`  ${name} -s skilldir1 -s skilldir2 "加载多个目录下的SKILLS"\n`);
+    console.log(`  ${name} -s skilldir1 -s skilldir2 "加载多个目录下的SKILLS"`);
+    console.log(`  ${name} -m 100 "设置最大轮次为100"\n`);
 }
 
 /**
@@ -156,13 +168,14 @@ function showHelp() {
  */
 function parseArgs(args: string[]) {
     const argv = minimist(args, {
-        string: ['cwd', 'skills'],
+        string: ['cwd', 'skills', 'max-turns'],
         alias: {
             h: 'help',
             c: 'cwd',
-            s: 'skills'
+            s: 'skills',
+            m: 'max-turns'
         },
-        default: { skills: [] }
+        default: { skills: [], 'max-turns': '50' }
     });
 
     // 检查是否显示帮助
@@ -182,15 +195,27 @@ function parseArgs(args: string[]) {
         skillPaths = skillPaths.filter(s => s.trim());
     }
 
+    // 解析最大轮次
+    let maxTurns = 50;
+    if (argv['max-turns']) {
+        const parsed = parseInt(argv['max-turns'], 10);
+        if (!isNaN(parsed) && parsed > 0) {
+            maxTurns = parsed;
+        } else {
+            console.log('\x1b[33m警告: max-turns 参数无效，使用默认值 50\x1b[0m\n');
+        }
+    }
+
     return {
         task: argv._[0],
         cwd: argv.cwd,
-        skills: skillPaths
+        skills: skillPaths,
+        maxTurns
     };
 }
 
 // 解析并执行
-const { task: userTask, cwd, skills: skillPaths } = parseArgs(process.argv.slice(2));
+const { task: userTask, cwd, skills: skillPaths, maxTurns } = parseArgs(process.argv.slice(2));
 
 if (!userTask) {
     console.log('\x1b[31m错误: 请指定需要执行的任务\x1b[0m\n');
@@ -198,4 +223,4 @@ if (!userTask) {
     process.exit(1);
 }
 
-main(userTask, cwd, skillPaths).catch(console.error);
+main(userTask, cwd, skillPaths, maxTurns).catch(console.error);

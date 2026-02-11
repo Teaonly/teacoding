@@ -2,10 +2,9 @@
 import { Model } from '@mariozechner/pi-ai';
 import { Agent, AgentTool } from './agent';
 import {type Skill, loadSkills, formatSkillsForPrompt, BuiltinTool,
-        readTool, bashTool, writeTool, editTool,
-        findTool, grepTool, lsTool} from "./coding";
+        createAllTools} from "./coding";
 
-// 通过构造：提示词+工具+SKILLS 三件套，孙行者版本，标准4个工具，加载SKILLS
+// 通过构造：提示词+工具+SKILLS 三件套，任务版本，标准4个工具，加载SKILLS
 export function buildAgent(model: Model<any>, apikey: string, selectedTools: BuiltinTool[], cwd: string | undefined = undefined, skillPaths: string[] = [] ) : Agent {
     // 检查是否有重复工具设置
     const _selectedTools = new Set(selectedTools);
@@ -14,22 +13,24 @@ export function buildAgent(model: Model<any>, apikey: string, selectedTools: Bui
     }
     const toolsString = selectedTools.join("\n");
     // 构建工具集
+    const resolvedCwd = cwd ?? process.cwd();
+    const cwdTools = createAllTools(resolvedCwd)
     const tools: AgentTool<any>[] = [];
     for (const t of selectedTools) {
         if (t === BuiltinTool.Read ) {
-            tools.push( readTool );
+            tools.push( cwdTools.read );
         } else if (t == BuiltinTool.Bash) {
-            tools.push( bashTool );
+            tools.push( cwdTools.bash );
         } else if (t == BuiltinTool.Write) {
-            tools.push( writeTool );
+            tools.push( cwdTools.write );
         } else if (t == BuiltinTool.Edit) {
-            tools.push( editTool );
+            tools.push( cwdTools.edit );
         } else if (t == BuiltinTool.Find) {
-            tools.push( findTool );
+            tools.push( cwdTools.find );
         } else if (t == BuiltinTool.Grep) {
-            tools.push( grepTool );
+            tools.push( cwdTools.grep );
         } else if (t == BuiltinTool.Ls ) {
-            tools.push( lsTool );
+            tools.push( cwdTools.ls );
         } else {
             throw Error(`错误的工具:${t}`);
         }
@@ -65,8 +66,7 @@ Guidelines:
 		minute: "2-digit",
 		second: "2-digit",
 		timeZoneName: "short",
-	});
-    const resolvedCwd = cwd ?? process.cwd();
+	});    
 
 	prompt += `\n\nCurrent date and time: ${dateTime}`;
     prompt += `\nCurrent working directory: ${resolvedCwd}`;
