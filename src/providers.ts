@@ -1,7 +1,7 @@
 import { Model } from '@mariozechner/pi-ai';
 
 const glmModel: Model<'openai-completions'> = {
-  id: 'GLM-4.7',
+  id: 'GLM-5',
   name: 'BigModel',
   api: 'openai-completions',
   provider: '智谱编码套餐',
